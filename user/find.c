@@ -2,6 +2,7 @@
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
 #include "user/user.h"
+#include "kernel/fs.h"
 
 char buf[1024];
 int match(char*, char*);
@@ -26,6 +27,40 @@ find2(char *path, char *expr)
     return;
   }
 
+  if (st.type == T_FILE) {
+  	if (match(expr, fmtname(path))) {
+  		printf("path: %s\n", path);
+  	}
+  } else if (T_DIR) {
+  	if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+  	  printf("find: path too long\n");
+  	  close(fd);
+  	  break;
+  	}
+  	strcpy(buf, path);
+  	p = buf+strlen(buf);
+  	*p++ = '/';
+  	
+  	    
+  	while(read(fd, &de, sizeof(de)) == sizeof(de)){
+  		if(de.inum == 0)
+  	    	continue;
+		if (strcmp(de.name, '.') == 0 || strcmp(de.name, '..') == 0) {
+			continue;
+		}
+  	    
+  	    memmove(p, de.name, DIRSIZ);
+  	    p[DIRSIZ] = 0;
+  	    if(stat(buf, &st) < 0){
+  	    	printf("find: cannot stat %s\n", buf);
+  	        continue;
+  	    }
+  	    printf("%d %d %d %d\n", fmtname(buf), st.type, st.ino, (int) st.size);
+  	}
+  } else {
+  	printf("Error found while traversing dirs \n");
+  }
+
   switch(st.type){
   case T_DEVICE:
   case T_FILE:
@@ -45,6 +80,8 @@ find2(char *path, char *expr)
     strcpy(buf, path);
     p = buf+strlen(buf);
     *p++ = '/';
+
+    
     while(read(fd, &de, sizeof(de)) == sizeof(de)){
       if(de.inum == 0)
         continue;
