@@ -7,10 +7,13 @@ char buf[1024];
 int match(char*, char*);
 
 void
-find(char *path, char *expression)
+findit(char *path, char *expression)
 {
   int n, m;
   char *p, *q;
+  int fd = 0;
+  printf("Expression: %s\n", expression);
+  printf("Path: %s\n", path);
 
   m = 0;
   while((n = read(fd, buf+m, sizeof(buf)-m-1)) > 0){
@@ -19,7 +22,7 @@ find(char *path, char *expression)
     p = buf;
     while((q = strchr(p, '\n')) != 0){
       *q = 0;
-      if(match(pattern, p)){
+      if(match(path, p)){
         *q = '\n';
         write(1, p, q+1 - p);
       }
@@ -48,8 +51,8 @@ main(int argc, char *argv[])
   expression = argv[2];
 
   if(argc <= 2){
-    find(path, );
-    fprintf("find: unable to find due to lack of arguments");
+    findit(path, expression);
+    printf("find: unable to find due to lack of arguments");
     exit(0);
   }
 
@@ -58,7 +61,7 @@ main(int argc, char *argv[])
       printf("find: cannot open %s\n", argv[i]);
       exit(1);
     }
-    find(pattern, fd);
+    findit(path, expression);
     close(fd);
   }
   exit(0);
