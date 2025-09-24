@@ -6,6 +6,61 @@
 char buf[1024];
 int match(char*, char*);
 
+// ls implementation code
+void
+find2(char *path, char *expr)
+{
+  char buf[512], *p;
+  int fd;
+  struct dirent de;
+  struct stat st;
+
+  if((fd = open(path, O_RDONLY)) < 0){
+    fprintf(2, "find: cannot open %s\n", path);
+    return;
+  }
+
+  if(fstat(fd, &st) < 0){
+    fprintf(2, "find: cannot stat %s\n", path);
+    close(fd);
+    return;
+  }
+
+  switch(st.type){
+  case T_DEVICE:
+  case T_FILE:
+    printf("%s %d %d %d\n", fmtname(path), st.type, st.ino, (int) st.size);
+    break;
+
+  case T_DIR:
+    if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+      printf("find: path too long\n");
+      break;
+    }
+    /*
+    - recursion would happen when we're searching within directories to find the file name given in expr
+    - stringcmp(TFILE == expr), else 
+    - base case would be the tree for all files
+    */
+    strcpy(buf, path);
+    p = buf+strlen(buf);
+    *p++ = '/';
+    while(read(fd, &de, sizeof(de)) == sizeof(de)){
+      if(de.inum == 0)
+        continue;
+      memmove(p, de.name, DIRSIZ);
+      p[DIRSIZ] = 0;
+      if(stat(buf, &st) < 0){
+        printf("find: cannot stat %s\n", buf);
+        continue;
+      }
+      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, (int) st.size);
+    }
+    break;
+  }
+  close(fd);
+}
+
 void
 findit(char *path, char *expression)
 {
