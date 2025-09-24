@@ -7,9 +7,27 @@
 char buf[1024];
 int match(char*, char*);
 
+char*
+fmtname(char *path)
+{
+  static char buf[DIRSIZ+1];
+  char *p;
+
+  // Find first character after last slash.
+  for(p=path+strlen(path); p >= path && *p != '/'; p--)
+    ;
+  p++;
+
+  // Return blank-padded name.
+  if(strlen(p) >= DIRSIZ)
+    return p;
+  memmove(buf, p, strlen(p));
+  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
+  return buf;
+}
 // ls implementation code
 void
-find2(char *path, char *expr)
+findit(char *path, char *expr)
 {
   char buf[512], *p;
   int fd;
@@ -35,7 +53,7 @@ find2(char *path, char *expr)
   	if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
   	  printf("find: path too long\n");
   	  close(fd);
-  	  break;
+  	  return;
   	}
   	strcpy(buf, path);
   	p = buf+strlen(buf);
@@ -43,28 +61,36 @@ find2(char *path, char *expr)
   	
   	    
   	while(read(fd, &de, sizeof(de)) == sizeof(de)){
-  		if(de.inum == 0)
+  		if(de.inum == 0){
   	    	continue;
-		if (strcmp(de.name, '.') == 0 || strcmp(de.name, '..') == 0) {
+  	    }
+		if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0) {
 			continue;
 		}
   	    
   	    memmove(p, de.name, DIRSIZ);
   	    p[DIRSIZ] = 0;
+  	    
   	    if(stat(buf, &st) < 0){
   	    	printf("find: cannot stat %s\n", buf);
   	        continue;
   	    }
-  	    printf("%d %d %d %d\n", fmtname(buf), st.type, st.ino, (int) st.size);
+  	    //printf("%d %d %d %d\n", fmtname(buf), st.type, st.ino, (int) st.size);
+		if(st.type == T_DIR){
+			findit(buf, expr);
+		} else if (match(expr,de.name)) {
+			printf("path: %s\n", buf);
+		}
   	}
-  } else {
+  	close(fd);
+  } /*else {
   	printf("Error found while traversing dirs \n");
-  }
-
+  }*/
+  /*
   switch(st.type){
   case T_DEVICE:
   case T_FILE:
-    printf("%s %d %d %d\n", fmtname(path), st.type, st.ino, (int) st.size);
+    printf("%d %d %d %d\n", fmtname(path), st.type, st.ino, (int) st.size);
     break;
 
   case T_DIR:
@@ -72,11 +98,11 @@ find2(char *path, char *expr)
       printf("find: path too long\n");
       break;
     }
-    /*
+    
     - recursion would happen when we're searching within directories to find the file name given in expr
     - stringcmp(TFILE == expr), else 
     - base case would be the tree for all files
-    */
+    
     strcpy(buf, path);
     p = buf+strlen(buf);
     *p++ = '/';
@@ -91,13 +117,13 @@ find2(char *path, char *expr)
         printf("find: cannot stat %s\n", buf);
         continue;
       }
-      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, (int) st.size);
+      printf("%d %d %d %d\n", fmtname(buf), st.type, st.ino, (int) st.size);
     }
     break;
   }
-  close(fd);
+  close(fd); */
 }
-
+/*
 void
 findit(char *path, char *expression)
 {
@@ -105,7 +131,7 @@ findit(char *path, char *expression)
   char *p, *q;
   int fd = 0;
   printf("Expression: %s\n", expression);
-  printf("Path: %s\n", path);
+  printf("Path: %s \n", path);
 
   m = 0;
   while((n = read(fd, buf+m, sizeof(buf)-m-1)) > 0){
@@ -125,10 +151,16 @@ findit(char *path, char *expression)
       memmove(buf, p, m);
     }
   }
-}
+}*/
 int
 main(int argc, char *argv[])
 {
+	  if(argc < 3){
+	    fprintf(2, "usage: find path expression\n");
+	    exit(1);
+	  }
+	  findit(argv[1], argv[2]);
+/*
   int fd, i;
   char *path;
   char *expression;
@@ -156,6 +188,7 @@ main(int argc, char *argv[])
     findit(path, expression);
     close(fd);
   }
+  */
   exit(0);
 }
 // Regexp matcher from Kernighan & Pike,
