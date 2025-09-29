@@ -33,7 +33,6 @@ findit(char *path, char *expr)
   int fd;
   struct dirent de;
   struct stat st;
-  printf("Path: %s, expr: %s\n", path, expr);
   if((fd = open(path, O_RDONLY)) < 0){
     fprintf(2, "find: cannot open %s\n", path);
     return;
@@ -47,7 +46,7 @@ findit(char *path, char *expr)
 
   if (st.type == T_FILE) {
   	if (match(expr, fmtname(path))) {
-  		printf("path: %s\n", path);
+  		printf("Path: %s\n", path);
   	}
   } else if (T_DIR) {
   	if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
@@ -78,7 +77,7 @@ findit(char *path, char *expr)
 		if(st.type == T_DIR){
 			findit(buf, expr);
 		} else if (match(expr,de.name)) {
-			printf("path: %s\n", buf);
+			printf("Path: %s \nFound!\n", buf);
 		}
   	}
   	close(fd);
